@@ -45,8 +45,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
           details.participants.forEach((p) => {
             const li = document.createElement("li");
-            li.textContent = p;
             li.className = "participant-item";
+            
+            // Create participant email text
+            const participantText = document.createTextNode(p);
+            li.appendChild(participantText);
+            
+            // Create delete icon
+            const deleteIcon = document.createElement("span");
+            deleteIcon.innerHTML = "✖";
+            deleteIcon.className = "delete-icon";
+            deleteIcon.title = "Remove participant";
+            deleteIcon.onclick = async (e) => {
+              e.preventDefault();
+              try {
+                const response = await fetch(
+                  `/activities/${encodeURIComponent(name)}/signup?email=${encodeURIComponent(p)}`,
+                  {
+                    method: "DELETE",
+                  }
+                );
+
+                const result = await response.json();
+
+                if (response.ok) {
+                  // Remove the participant from the list
+                  li.remove();
+                  // If this was the last participant, show the "no participants" message
+                  if (ul.children.length === 0) {
+                    const noOne = document.createElement("p");
+                    noOne.className = "info";
+                    noOne.textContent = "No participants yet. Be the first!";
+                    participantsDiv.replaceChild(noOne, ul);
+                  }
+                  // Update activity select option
+                  const option = Array.from(activitySelect.options).find(
+                    opt => opt.value === name  // Fixed: using name instead of activity_name
+                  );
+                  if (option) {
+                    option.textContent = name;  // Fixed: using name instead of activity_name
+                  }
+                } else {
+                  alert(result.detail || "Failed to unregister participant");
+                }
+              } catch (error) {
+                console.error("Error unregistering participant:", error);
+                if (error instanceof TypeError && error.message.includes('json')) {
+                  alert("Server error: Could not parse response");
+                } else {
+                  alert("Failed to unregister participant. Please try again.");
+                }
+              }
+            };
+            li.appendChild(deleteIcon);
             ul.appendChild(li);
           });
 
@@ -94,6 +145,119 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+
+        // Find the activity card that needs updating
+        const activityCards = document.querySelectorAll('.activity-card');
+        const targetCard = Array.from(activityCards).find(card => 
+          card.querySelector('h4').textContent === activity
+        );
+
+        if (targetCard) {
+          const participantsDiv = targetCard.querySelector('.participants');
+          const participantsList = participantsDiv.querySelector('.participants-list');
+          const noParticipantsMsg = participantsDiv.querySelector('.info');
+
+          if (noParticipantsMsg) {
+            // Remove "no participants" message and create new list
+            const ul = document.createElement('ul');
+            ul.className = 'participants-list';
+            const li = document.createElement('li');
+            li.className = 'participant-item';
+            
+            // Add participant email
+            const participantText = document.createTextNode(email);
+            li.appendChild(participantText);
+            
+            // Add delete icon
+            const deleteIcon = document.createElement('span');
+            deleteIcon.innerHTML = '✖';
+            deleteIcon.className = 'delete-icon';
+            deleteIcon.title = 'Remove participant';
+            deleteIcon.onclick = async (e) => {
+              e.preventDefault();
+              try {
+                const response = await fetch(
+                  `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+                  {
+                    method: 'DELETE',
+                  }
+                );
+
+                const result = await response.json();
+
+                if (response.ok) {
+                  li.remove();
+                  if (ul.children.length === 0) {
+                    const noOne = document.createElement('p');
+                    noOne.className = 'info';
+                    noOne.textContent = 'No participants yet. Be the first!';
+                    participantsDiv.replaceChild(noOne, ul);
+                  }
+                } else {
+                  alert(result.detail || 'Failed to unregister participant');
+                }
+              } catch (error) {
+                console.error('Error unregistering participant:', error);
+                if (error instanceof TypeError && error.message.includes('json')) {
+                  alert('Server error: Could not parse response');
+                } else {
+                  alert('Failed to unregister participant. Please try again.');
+                }
+              }
+            };
+            li.appendChild(deleteIcon);
+            ul.appendChild(li);
+            participantsDiv.replaceChild(ul, noParticipantsMsg);
+          } else if (participantsList) {
+            // Add to existing list
+            const li = document.createElement('li');
+            li.className = 'participant-item';
+            
+            // Add participant email
+            const participantText = document.createTextNode(email);
+            li.appendChild(participantText);
+            
+            // Add delete icon
+            const deleteIcon = document.createElement('span');
+            deleteIcon.innerHTML = '✖';
+            deleteIcon.className = 'delete-icon';
+            deleteIcon.title = 'Remove participant';
+            deleteIcon.onclick = async (e) => {
+              e.preventDefault();
+              try {
+                const response = await fetch(
+                  `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+                  {
+                    method: 'DELETE',
+                  }
+                );
+
+                const result = await response.json();
+
+                if (response.ok) {
+                  li.remove();
+                  if (participantsList.children.length === 0) {
+                    const noOne = document.createElement('p');
+                    noOne.className = 'info';
+                    noOne.textContent = 'No participants yet. Be the first!';
+                    participantsDiv.replaceChild(noOne, participantsList);
+                  }
+                } else {
+                  alert(result.detail || 'Failed to unregister participant');
+                }
+              } catch (error) {
+                console.error('Error unregistering participant:', error);
+                if (error instanceof TypeError && error.message.includes('json')) {
+                  alert('Server error: Could not parse response');
+                } else {
+                  alert('Failed to unregister participant. Please try again.');
+                }
+              }
+            };
+            li.appendChild(deleteIcon);
+            participantsList.appendChild(li);
+          }
+        }
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
